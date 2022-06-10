@@ -41,7 +41,7 @@ class PushWechat:
             self.touser: str = config.get('to_user')
         elif self.msgtype == "mail":
             self.mail_host: str = config.get('mail_host')
-            self.mail_user: str = config.get('mail_user', self.mail_host)
+            self.mail_user: str = config.get('mail_user')
             self.mail_pass: str = config.get('mail_pass')
             self.touser: str = config.get('to_user')
             self.mail_port: int = config.get('mail_port', 25)
