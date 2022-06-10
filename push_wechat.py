@@ -7,9 +7,10 @@
 from __future__ import annotations
 import logging
 import requests
-import json
+import base64
 import os
 import socket
+import re
 from PIL import Image, ImageFont, ImageDraw
 
 # Annotation imports
@@ -31,11 +32,22 @@ class PushWechat:
         self.server = config.get_server()
         self.last_print_stats: Dict[str, Any] = {}
 
-        self.corpsecret: str = config.get('corp_secret')
-        self.agentid: str = config.get('agent_id')
-        self.corpid: str = config.get('corp_id')
-        self.touser: str = config.get('to_user')
-        self.msgtype: str = config.get('msg_type', "html")
+        self.msgtype: str = config.get('msg_type')
+
+        if self.msgtype == "wechat":
+            self.corpsecret: str = config.get('corp_secret')
+            self.agentid: str = config.get('agent_id')
+            self.corpid: str = config.get('corp_id')
+            self.touser: str = config.get('to_user')
+        elif self.msgtype == "mail":
+            self.mail_host: str = config.get('mail_host')
+            self.mail_user: str = config.get('mail_user', self.mail_host)
+            self.mail_pass: str = config.get('mail_pass')
+            self.touser: str = config.get('to_user')
+            self.mail_port: int = config.get('mail_port', 25)
+        else:
+            logging.error("Unsupported message types")
+            return
 
         db: DBComp = self.server.load_component(config, "database")
         db_path = db.get_database_path()
@@ -156,9 +168,11 @@ class PushWechat:
         info = ""
         media_id = ""
         digest = ""
+        color = ""
         # 判断打印机状态
         if state == "shutdown":
             state_title = "停机"
+            color = "red"
             info = text
             if "\n" in text:
                 digest = text.split("\n")[0]
@@ -166,61 +180,90 @@ class PushWechat:
                 digest = text
 
             # 创建图片
-            im = Image.new("RGB", (500, 100), (255, 255, 255))
+            im = Image.new("RGB", (300, 100), (64, 44, 46))
             dr = ImageDraw.Draw(im)
-            # font = ImageFont.truetype(os.path.join("fonts", "/usr/share/fonts/truetype/freefont/FreeSerif.ttf"), 20)
-            dr.text((20, 20), text, fill="#000000")
-            im.show()
+            font = ImageFont.truetype(os.path.join(
+                "fonts", "/usr/share/fonts/truetype/freefont/FreeMono.ttf"), 12)
+            dr.text((35, 5), info, font=font, fill="#FF5252")
+            # im.show()
             im.save(r"/tmp/mwx_media.png")
 
             # 上传临时图片
             media_id = self._uploadImage("/tmp/mwx_media.png")
         elif state == "printing":
             state_title = "开始打印"
-            info = f"开始打印文件: {filename}"
+            color = "green"
+            info = f"Printstart: \n{filename}"
             digest = info
 
-            media_path = self.gc_path + "/.thumbs/" + \
-                filename.replace(".gcode", "-240x240.png")
+            files = os.listdir(self.gc_path + "/.thumbs/")
+            img = ".png"
+            for file in files:
+                print(file)
+                match = re.search(filename.replace(
+                    ".gcode", "-") + "(.*?)x(.*?).png", file)
+
+                if match:
+                    if "32x32" not in file:
+                        img = file
+                        break
+
+            media_path = self.gc_path + "/.thumbs/" + img
             if not os.path.exists(media_path):
                 # 创建图片
-                im = Image.new("RGB", (100, 80), (255, 255, 255))
+                im = Image.new("RGB", (300, 80), (255, 255, 255))
                 dr = ImageDraw.Draw(im)
-                # font = ImageFont.truetype(os.path.join("fonts", "/usr/share/fonts/truetype/freefont/FreeSerif.ttf"), 20)
-                dr.text((20, 20), filename, fill="#000000")
-                im.show()
+                font = ImageFont.truetype(os.path.join(
+                    "fonts", "/usr/share/fonts/truetype/freefont/FreeMono.ttf"), 12)
+                dr.text((35, 5), info, font=font, fill="#00FF7F")
+                # im.show()
                 im.save(r"/tmp/mwx_media.png")
                 media_path = "/tmp/mwx_media.png"
             media_id = self._uploadImage(media_path)
 
         elif state == "complete":
             state_title = "打印结束"
-            info = f"文件: {filename} 打印结束"
+            color = "blue"
+            info = f"Printed: \n{filename} \n"
             digest = info
 
-            media_path = self.gc_path + "/.thumbs/" + \
-                filename.replace(".gcode", "-240x240.png")
+            files = os.listdir(self.gc_path + "/.thumbs/")
+            img = ".png"
+            for file in files:
+                print(file)
+                match = re.search(filename.replace(
+                    ".gcode", "-") + "(.*?)x(.*?).png", file)
+
+                if match:
+                    if "32x32" not in file:
+                        img = file
+                        break
+
+            media_path = self.gc_path + "/.thumbs/" + img
             if not os.path.exists(media_path):
                 # 创建图片
-                im = Image.new("RGB", (100, 80), (255, 255, 255))
+                im = Image.new("RGB", (300, 80), (255, 255, 255))
                 dr = ImageDraw.Draw(im)
-                # font = ImageFont.truetype(os.path.join("fonts", "/usr/share/fonts/truetype/freefont/FreeSerif.ttf"), 20)
-                dr.text((20, 20), filename, fill="#000000")
-                im.show()
+                font = ImageFont.truetype(os.path.join(
+                    "fonts", "/usr/share/fonts/truetype/freefont/FreeMono.ttf"), 12)
+                dr.text((35, 5), info, font=font, fill="#00BFFF")
+                # im.show()
                 im.save(r"/tmp/mwx_media.png")
                 media_path = "/tmp/mwx_media.png"
             media_id = self._uploadImage(media_path)
         elif state == "error":
             state_title = "错误"
+            color = "red"
             info = text
             digest = text
 
             # 创建图片
-            im = Image.new("RGB", (500, 100), (255, 255, 255))
+            im = Image.new("RGB", (300, 100), (64, 44, 46))
             dr = ImageDraw.Draw(im)
-            # font = ImageFont.truetype(os.path.join("fonts", "/usr/share/fonts/truetype/freefont/FreeSerif.ttf"), 20)
-            dr.text((20, 20), text, fill="#000000")
-            im.show()
+            font = ImageFont.truetype(os.path.join(
+                "fonts", "/usr/share/fonts/truetype/freefont/FreeMono.ttf"), 12)
+            dr.text((35, 5), info, font=font, fill="#FF5252")
+            # im.show()
             im.save(r"/tmp/mwx_media.png")
 
             # 上传临时图片
@@ -229,41 +272,56 @@ class PushWechat:
             logging.error("unknown state")
             return
 
+        f = open('/tmp/mwx_media.png', 'rb')
+        imagebytes = base64.b64encode(f.read())
+        f.close()
+        imagestr = str(imagebytes)
+        realimagestr = imagestr[2:len(imagestr)-1]
+
         hostname = self.server.get_host_info()['hostname']
         ip = self._extract_ip()
+        info = info.replace("\n", "</br>")
         html = f"""
                 </br>
-                <font size="5">状态：</font> <font color=\"warning\" size="5">{state}</font>
+                <img src="data:image/png;base64,{realimagestr}"></img>
                 </br>
-                <font size="5">详情：</font> <font color=\"red\" size="5">{info}</font>
+                <font size="5">状态：</font> <font color="{color}" size="5">{state}</font>
                 </br>
-                <font size="5">地址：</font> <a href=\"http://{hostname}/\"> <font color=\"blue\" size="5">http://{hostname}/</font> </a> <a href=\"http://{ip}/\"> <font color=\"blue\" size="5">http://{ip}/</font> </a>
+                <font size="5">详情：</font> <font color="{color}" size="5">{info}</font>
+                </br>
+                <font size="5">域地址：</font> <a href="http://{hostname}/"> <font color="blue" size="5">{hostname}</font> </a>
+                </br>
+                <font size="5">IP地址: </font>  <a href="http://{ip}/"> <font color="blue" size="5">{ip}</font> </a>
                 </br>
                 </br>
                 </br>
-                <font color=\"green\" size="4">点击“阅读原文”前往控制端</font>
+                <font color="green" size="4">点击“阅读原文”前往控制端</font>
                 """
 
-        article = {
-            'title': f"[{self.print_name}] 状态更新：{state_title}",
-            'thumb_media_id': media_id,
-            'author': self.print_name,
-            'content_source_url': f"http://{ip}/",
-            'content': html,
-            'digest': digest
-        }
-        dic = {'touser': self.touser, 'msgtype': "mpnews", 'agentid': self.agentid, 'mpnews': {
-            'articles': [article]}, 'enable_duplicate_check': 0, 'duplicate_check_interval': 1800}
+        if self.msgtype == "wechat":
+            logging.info("wechat")
+            article = {
+                'title': f"[{self.print_name}] 状态更新：{state_title}",
+                'thumb_media_id': media_id,
+                'author': self.print_name,
+                'content_source_url': f"http://{ip}/",
+                'content': html,
+                'digest': digest
+            }
+            dic = {'touser': self.touser, 'msgtype': "mpnews", 'agentid': self.agentid, 'mpnews': {
+                'articles': [article]}, 'enable_duplicate_check': 0, 'duplicate_check_interval': 1800}
 
-        r = requests.post(
-            "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + AsToken, json=dic)
-        if r.json()['errcode'] == 0:
-            logging.info(f"Message push successfully: {r.json()['msgid']}")
-            return
-        else:
-            logging.error(
-                f"Failed to push message. ErrCode:{r.json()['errcode']},ErrMsg:{r.json()['errmsg']}")
-            return
+            r = requests.post(
+                "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + AsToken, json=dic)
+            if r.json()['errcode'] == 0:
+                logging.info(f"Message push successfully: {r.json()['msgid']}")
+                return
+            else:
+                logging.error(
+                    f"Failed to push message. ErrCode:{r.json()['errcode']},ErrMsg:{r.json()['errmsg']}")
+                return
+        elif self.msgtype == "mail":
+            logging.info("mail")
 
     def _extract_ip(self):
         st = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
