@@ -36,14 +36,29 @@ class PushWechat:
 
         if self.msgtype == "wechat":
             self.corpsecret: str = config.get('corp_secret')
+            self.corpsecret = self.corpsecret.replace(" ", "")
+
             self.agentid: str = config.get('agent_id')
+            self.agentid = self.agentid.replace(" ", "")
+
             self.corpid: str = config.get('corp_id')
+            self.corpid = self.corpid.replace(" ", "")
+
             self.touser: str = config.get('to_user')
+            self.touser = self.touser.replace(" ", "")
         elif self.msgtype == "mail":
             self.mail_host: str = config.get('mail_host')
+            self.mail_host = self.mail_host.replace(" ", "")
+
             self.mail_user: str = config.get('mail_user')
+            self.mail_user = self.mail_user.replace(" ", "")
+
             self.mail_pass: str = config.get('mail_pass')
+            self.mail_pass = self.mail_pass.replace(" ", "")
+
             self.touser: str = config.get('to_user')
+            self.touser = self.touser.replace(" ", "")
+
             self.mail_port: int = config.get('mail_port', 25)
         else:
             logging.error("Unsupported message types")
