@@ -61,6 +61,9 @@ class PushWechat:
 
             self.mail_port: int = config.get('mail_port', 25)
         else:
+            self.server.add_warning(
+                f"[Push_Wechat] Unsupported message types {self.msgtype}"
+                "\n\nIf you want to get rid of this warning, please restart MoonRaker.")
             logging.error("Unsupported message types")
             return
 
@@ -129,6 +132,12 @@ class PushWechat:
                 elif state == "error":
                     # 错误
                     self._pushState(state=state, text=new_ps['message'])
+                elif state == "paused":
+                    # 暂停
+                    self._pushState(state=state, filename=filename)
+                elif state == "standby":
+                    # 取消
+                    self._pushState(state=state, filename=filename)
                 else:
                     logging.info(f"状态：{state}")
                     print(data)
@@ -141,6 +150,9 @@ class PushWechat:
         data = r.json()
         errcode = data["errcode"]
         if errcode != 0:
+            self.server.add_warning(
+                f"[Push_Wechat] Failed to get access_token. ErrCode:{errcode},ErrMsg:{data['errmsg']}"
+                "\n\nIf you want to get rid of this warning, please restart MoonRaker.")
             logging.error(
                 f"Failed to get access_token. ErrCode:{errcode},ErrMsg:{data['errmsg']}")
             return None
@@ -283,6 +295,68 @@ class PushWechat:
 
             # 上传临时图片
             media_id = self._uploadImage("/tmp/mwx_media.png")
+        elif state == "paused":
+            # 暂停
+            state_title = "打印暂停"
+            color = "yellow"
+            info = f"Printing: \n{filename} \n"
+            digest = info
+
+            files = os.listdir(self.gc_path + "/.thumbs/")
+            img = ".png"
+            for file in files:
+                print(file)
+                match = re.search(filename.replace(
+                    ".gcode", "-") + "(.*?)x(.*?).png", file)
+
+                if match:
+                    if "32x32" not in file:
+                        img = file
+                        break
+
+            media_path = self.gc_path + "/.thumbs/" + img
+            if not os.path.exists(media_path):
+                # 创建图片
+                im = Image.new("RGB", (300, 80), (255, 255, 255))
+                dr = ImageDraw.Draw(im)
+                font = ImageFont.truetype(os.path.join(
+                    "fonts", "/tmp/FreeMono.ttf"), 12)
+                dr.text((35, 5), info, font=font, fill="#00BFFF")
+                # im.show()
+                im.save(r"/tmp/mwx_media.png")
+                media_path = "/tmp/mwx_media.png"
+            media_id = self._uploadImage(media_path)
+        elif state == "standby":
+            # 取消
+            state_title = "取消打印"
+            color = "red"
+            info = f"Printed: \n{filename} \n"
+            digest = info
+
+            files = os.listdir(self.gc_path + "/.thumbs/")
+            img = ".png"
+            for file in files:
+                print(file)
+                match = re.search(filename.replace(
+                    ".gcode", "-") + "(.*?)x(.*?).png", file)
+
+                if match:
+                    if "32x32" not in file:
+                        img = file
+                        break
+
+            media_path = self.gc_path + "/.thumbs/" + img
+            if not os.path.exists(media_path):
+                # 创建图片
+                im = Image.new("RGB", (300, 80), (255, 255, 255))
+                dr = ImageDraw.Draw(im)
+                font = ImageFont.truetype(os.path.join(
+                    "fonts", "/tmp/FreeMono.ttf"), 12)
+                dr.text((35, 5), info, font=font, fill="#00BFFF")
+                # im.show()
+                im.save(r"/tmp/mwx_media.png")
+                media_path = "/tmp/mwx_media.png"
+            media_id = self._uploadImage(media_path)
         else:
             logging.error("unknown state")
             return
@@ -332,6 +406,9 @@ class PushWechat:
                 logging.info(f"Message push successfully: {r.json()['msgid']}")
                 return
             else:
+                self.server.add_warning(
+                    f"[Push_Wechat] Failed to push message. ErrCode:{r.json()['errcode']},ErrMsg:{r.json()['errmsg']}"
+                    "\n\nIf you want to get rid of this warning, please restart MoonRaker.")
                 logging.error(
                     f"Failed to push message. ErrCode:{r.json()['errcode']},ErrMsg:{r.json()['errmsg']}")
                 return

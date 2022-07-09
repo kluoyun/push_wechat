@@ -8,8 +8,8 @@
 # 安装
 
 ```bash
-cd ~/moonraker/moonraker/components/
-wget https://raw.githubusercontent.com/kluoyun/push_wechat/main/push_wechat.py
+wget https://raw.githubusercontent.com/kluoyun/push_wechat/main/fonts/FreeMono.ttf -O /tmp/FreeMono.ttf
+wget https://raw.githubusercontent.com/kluoyun/push_wechat/main/push_wechat.py -O ~/moonraker/moonraker/components/push_wechat.py
 sudo systemctl restart moonraker
 
 ```
@@ -20,18 +20,25 @@ sudo systemctl restart moonraker
 
 ```cfg
 [push_wechat]
-corp_secret: oxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # 企业微信应用私钥
-corp_id: wwxxxxxxxxxxxxxxx   # 企业ID
-agent_id: 1xxxxxxx           # 企业微信应用ID
+corp_secret: oxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# 企业微信应用私钥
+corp_id: wwxxxxxxxxxxxxxxx
+# 企业ID
+agent_id: 1xxxxxxx
+# 企业微信应用ID
 to_user: @all
 # 接收消息的人
 # 消息类型为微信时：企业微信成员ID.@all为所有人.多人使用|分开
 # 消息类型为邮件时：xxxx@xxx.xxx.多个接收邮箱用|分开
 
-#mail_host: smtp.xxxx.xxx    # 发信服务器
-#mail_user: xxxx@xxxx.xxx    # 发信邮箱
-#mail_pass: xxxxxxxxxxxxx    # 发信邮箱密码，QQ邮箱等需要授权码
-#mail_port: 25               # smtp发信服务器端口，默认为25
+#mail_host: smtp.xxxx.xxx
+# 发信服务器
+#mail_user: xxxx@xxxx.xxx
+# 发信邮箱
+#mail_pass: xxxxxxxxxxxxx
+# 发信邮箱密码，QQ邮箱等需要授权码
+#mail_port: 25
+# smtp发信服务器端口，默认为25
 
 msg_type: wechat
 # 消息类型
