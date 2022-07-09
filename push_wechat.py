@@ -210,7 +210,7 @@ class PushWechat:
             im = Image.new("RGB", (300, 100), (64, 44, 46))
             dr = ImageDraw.Draw(im)
             font = ImageFont.truetype(os.path.join(
-                "fonts", "/usr/share/fonts/truetype/freefont/FreeMono.ttf"), 12)
+                "fonts", "/tmp/FreeMono.ttf"), 12)
             dr.text((35, 5), info, font=font, fill="#FF5252")
             # im.show()
             im.save(r"/tmp/mwx_media.png")
@@ -241,7 +241,7 @@ class PushWechat:
                 im = Image.new("RGB", (300, 80), (255, 255, 255))
                 dr = ImageDraw.Draw(im)
                 font = ImageFont.truetype(os.path.join(
-                    "fonts", "/usr/share/fonts/truetype/freefont/FreeMono.ttf"), 12)
+                    "fonts", "/tmp/FreeMono.ttf"), 12)
                 dr.text((35, 5), info, font=font, fill="#00FF7F")
                 # im.show()
                 im.save(r"/tmp/mwx_media.png")
@@ -272,7 +272,7 @@ class PushWechat:
                 im = Image.new("RGB", (300, 80), (255, 255, 255))
                 dr = ImageDraw.Draw(im)
                 font = ImageFont.truetype(os.path.join(
-                    "fonts", "/usr/share/fonts/truetype/freefont/FreeMono.ttf"), 12)
+                    "fonts", "/tmp/FreeMono.ttf"), 12)
                 dr.text((35, 5), info, font=font, fill="#00BFFF")
                 # im.show()
                 im.save(r"/tmp/mwx_media.png")
@@ -288,7 +288,7 @@ class PushWechat:
             im = Image.new("RGB", (300, 100), (64, 44, 46))
             dr = ImageDraw.Draw(im)
             font = ImageFont.truetype(os.path.join(
-                "fonts", "/usr/share/fonts/truetype/freefont/FreeMono.ttf"), 12)
+                "fonts", "/tmp/FreeMono.ttf"), 12)
             dr.text((35, 5), info, font=font, fill="#FF5252")
             # im.show()
             im.save(r"/tmp/mwx_media.png")
