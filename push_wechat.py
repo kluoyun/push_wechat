@@ -21,6 +21,7 @@ from typing import (
     Dict,
     List,
 )
+
 if TYPE_CHECKING:
     from confighelper import ConfigHelper
     from .klippy_apis import KlippyAPI
